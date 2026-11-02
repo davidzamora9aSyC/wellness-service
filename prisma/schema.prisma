@@ -1,0 +1,68 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["wellness"]
+}
+
+enum WellnessAudience {
+  PATIENT
+  COMPANY
+
+  @@schema("wellness")
+}
+
+enum WellnessSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+
+  @@schema("wellness")
+}
+
+model WellnessProfile {
+  id                String           @id @default(uuid())
+  authUserId        String
+  subjectId         String
+  subjectRole       String
+  audience          WellnessAudience
+  score             Int              @default(58)
+  sessionsCompleted Int              @default(0)
+  currentStreak     Int              @default(0)
+  longestStreak     Int              @default(0)
+  lastSessionDate   String?
+  weeklySessions    Int              @default(0)
+  weekStartDate     String?
+  incompleteDismissedAt DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  sessions WellnessSession[]
+
+  @@unique([authUserId, audience])
+  @@index([subjectId, audience])
+  @@schema("wellness")
+}
+
+model WellnessSession {
+  id              String                @id @default(uuid())
+  profile         WellnessProfile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId       String
+  status          WellnessSessionStatus @default(IN_PROGRESS)
+  compliancePct   Int?
+  motionLevelAvg  Int?
+  progressPct     Int                   @default(0)
+  durationSec     Int                   @default(0)
+  scoreGain       Int?
+  startedAt       DateTime              @default(now())
+  completedAt     DateTime?
+  abandonedAt     DateTime?
+
+  @@index([profileId, status])
+  @@index([startedAt])
+  @@schema("wellness")
+}
